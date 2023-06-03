@@ -1,0 +1,19 @@
+﻿"Phrases"
+{
+	"MenuTitle"
+	{
+		"en"        "Quests"
+		"ru"        "Задания"
+	}
+	"Complete"
+	{
+		"en"        "Complete"
+		"ru"        "Выполнено"
+	}
+	"QuestComplite"
+	{
+		"#format"   "{1:i},{2:s},{3:s}"
+		"en"        "Your exp: {GREEN}{1} [{2} for completing a quest {OLIVE}{3}{GREEN}]"
+		"ru"        "Ваш опыт: {GREEN}{1} [{2} за выполнение задания {OLIVE}{3}{GREEN}]"
+	}
+}
