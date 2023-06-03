@@ -16,7 +16,7 @@
 (\
 	`accountid` int unsigned NOT NULL, \
 	`quest` varchar(128) NOT NULL, \
-	`progress` int unsigned NOT NULL DEFAULT 0, \
+	`progress` int NOT NULL DEFAULT 0, \
 	PRIMARY KEY (`accountid`, `quest`)\
 );"
 
@@ -39,7 +39,7 @@ VALUES "
 
 #define SQL_UPDATE_DATA \
 "UPDATE `%s_quests` SET\
-	`progress` = %u \
+	`progress` = %i \
 WHERE \
 	`accountid` = %u AND `quest` = '%s';"
 
