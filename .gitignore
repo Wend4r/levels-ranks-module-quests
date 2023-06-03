@@ -1,0 +1,5 @@
+# Workspaces
+.vscode*/
+
+# Binary files. Must be published in Releases.
+addons/sourcemod/plugins*/
