@@ -81,7 +81,7 @@ ArrayList g_hQuests,
 
 Database  g_hDatabase;
 
-Handle    g_hQuestTimer;
+Handle    g_hUpdateQuestsTimer;
 
 public Plugin myinfo =
 {
@@ -132,14 +132,7 @@ Action sm_quests_reload(int iClient)
 
 Action sm_refresh_quests_data(int iClient)
 {
-	OnQuestsUpdate(g_hQuestTimer);
-
-	if(g_hQuestTimer)
-	{
-		// delete g_hQuestTimer;
-		KillTimer(g_hQuestTimer);
-		g_hQuestTimer = null;
-	}
+	OnUpdateQuests(g_hUpdateQuestsTimer);
 }
 
 void LoadSettings()
@@ -198,27 +191,24 @@ void LoadSettings()
 		SetFailState("%s - %s", sPath, sError);
 	}
 
-	if(g_hQuestTimer)
+	if(g_hUpdateQuestsTimer)
 	{
-		// delete g_hQuestTimer;
-		KillTimer(g_hQuestTimer);
-		g_hQuestTimer = null;
+		KillTimer(g_hUpdateQuestsTimer);
 	}
 
-	CreateTimer(float(86400 - (GetTime() % 86400)), OnQuestsUpdate);
+	g_hUpdateQuestsTimer = CreateTimer(float(86400 - (GetTime() % 86400)), OnUpdateQuests);
 
 	hParser.Close();
 }
 
-Action OnQuestsUpdate(Handle hPlugin)
+Action OnUpdateQuests(Handle hPlugin)
 {
 	decl char sBuffer[128];
 
 	FormatEx(sBuffer, sizeof(sBuffer), SQL_DELETE_ALL_DATA, g_sTableName);
 	g_hDatabase.Query(SQL_Callback, sBuffer, 2);
 
-	g_hQuestTimer = CreateTimer(86400.0, OnQuestsUpdate);
-
+	g_hUpdateQuestsTimer = null;
 	LoadSettings();
 
 	return Plugin_Handled;
