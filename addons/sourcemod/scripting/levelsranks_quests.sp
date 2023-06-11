@@ -1,7 +1,11 @@
 #pragma semicolon 1
 
 #include <sourcemod>
+
 #include <lvl_ranks>
+#undef REQUIRE_PLUGIN
+#include <shop>
+#define REQUIRE_PLUGIN
 
 #pragma newdecls required
 
@@ -48,14 +52,51 @@ WHERE \
 FROM \
 	`%s_quests`"
 
+enum QuestAwardAmountType
+{
+	LR_Exp = 0,
+	Shop_Credits,
+	//TODO: feature rewards.
+
+	DefaultAward = LR_Exp,
+};
+
 enum struct QuestAwardedData
 {
-	int       iAmount;
-	int       iMaxProgress;
-	int       iNameIndex;
-	int       iEventIndex;
-	int       iEventBelongIndex;
-	ArrayList hCondition;
+	int                    iAmount;
+	QuestAwardAmountType   eAmountType;
+	int                    iMaxProgress;
+	int                    iNameIndex;
+	int                    iEventIndex;
+	int                    iEventBelongIndex;
+	ArrayList              hCondition;
+
+	void Init(int iInitNameIndex = -1, int iInitEventIndex = -1, int iInitEventBelongIndex = -1)
+	{
+		this.iAmount = 0;
+		this.eAmountType = DefaultAward;
+		this.iMaxProgress = 0;
+		this.iNameIndex = iInitNameIndex;
+		this.iEventIndex = iInitEventIndex;
+		this.iEventBelongIndex = iInitEventBelongIndex;
+		this.hCondition = new ArrayList(2);
+	}
+
+	void Close()
+	{
+		this.hCondition.Close();
+	}
+
+	void Clear()
+	{
+		this.iAmount = 0;
+		this.eAmountType = DefaultAward;
+		this.iMaxProgress = 0;
+		this.iNameIndex = -1;
+		this.iEventIndex = -1;
+		this.iEventBelongIndex = -1;
+		delete this.hCondition;
+	}
 }
 
 enum struct PlayerData
@@ -259,10 +300,29 @@ SMCResult OnSelectQuestSettings(SMCParser hParser, const char[] sKey, const char
 	{
 		g_QuestAwardedData.iAmount = StringToInt(sValue);
 	}
+	else if(!strcmp(sKey, "amount_type"))
+	{
+		if(!strcmp(sValue, "lr_exp"))
+		{
+			g_QuestAwardedData.eAmountType = LR_Exp;
+		}
+		else if(!strcmp(sValue, "shop_credits"))
+		{
+			g_QuestAwardedData.eAmountType = Shop_Credits;
+		}
+		else
+		{
+			LogError("Unknown \"%s\" amount type", sValue, "amount_type");
+
+			return SMCParse_Halt;
+		}
+	}
 	else if(!strcmp(sKey, "count"))
 	{
 		g_QuestAwardedData.iMaxProgress = StringToInt(sValue);
 	}
+
+	return SMCParse_Continue;
 }
 
 SMCResult OnSelectConditionSettings(SMCParser hParser, const char[] sKey, const char[] sValue, bool bKeyQuotes, bool bValueQuotes)
@@ -294,8 +354,7 @@ SMCResult OnNewSectionSettings(SMCParser hParser, const char[] sName, bool bOptQ
 		}
 		case 2:
 		{
-			g_QuestAwardedData.hCondition = new ArrayList(2);
-			g_QuestAwardedData.iNameIndex = g_hQuestsName.PushString(sName);
+			g_QuestAwardedData.Init(g_hQuestsName.PushString(sName));
 
 			hParser.OnKeyValue = OnSelectQuestSettings;
 		}
@@ -392,19 +451,49 @@ void OnEventHandler(Event hEvent, const char[] sName, bool bDontBroadcast)
 								{
 									if(iProgress + 1 >= g_hQuests.Get(iQuestIndex, QuestAwardedData::iMaxProgress))
 									{
-										int iGiveExp = g_hQuests.Get(iQuestIndex, QuestAwardedData::iAmount);
+										QuestAwardAmountType eType = g_hQuests.Get(iQuestIndex, QuestAwardedData::eAmountType);
 
-										if(LR_ChangeClientValue(iClient, iGiveExp))
+										switch(eType)
 										{
-											g_hQuestsName.GetString(g_hQuests.Get(iQuestIndex, QuestAwardedData::iNameIndex), sBuffer, sizeof(sBuffer));
-
-											if(TranslationPhraseExists(sBuffer))
+											case LR_Exp:
 											{
-												Format(sBuffer, sizeof(sBuffer), "%T", sBuffer, iClient);
+												int iGiveExp = g_hQuests.Get(iQuestIndex, QuestAwardedData::iAmount);
+
+												if(LR_ChangeClientValue(iClient, iGiveExp))
+												{
+													g_hQuestsName.GetString(g_hQuests.Get(iQuestIndex, QuestAwardedData::iNameIndex), sBuffer, sizeof(sBuffer));
+
+													if(TranslationPhraseExists(sBuffer))
+													{
+														Format(sBuffer, sizeof(sBuffer), "%T", sBuffer, iClient);
+													}
+
+													LR_PrintToChat(iClient, true, "%T", "QuestCompliteLRExp", iClient, LR_GetClientInfo(iClient, ST_EXP), GetSignValue(iGiveExp), sBuffer);
+													g_hPlayerQuests[iClient].Set(iPlayerIndex, -1, PlayerData::iProgress);
+												}
 											}
 
-											LR_PrintToChat(iClient, true, "%T", "QuestComplite", iClient, LR_GetClientInfo(iClient, ST_EXP), GetSignValue(iGiveExp), sBuffer);
-											g_hPlayerQuests[iClient].Set(iPlayerIndex, -1, PlayerData::iProgress);
+											case Shop_Credits:
+											{
+												int iGiveCredits = g_hQuests.Get(iQuestIndex, QuestAwardedData::iAmount);
+
+												g_hQuestsName.GetString(g_hQuests.Get(iQuestIndex, QuestAwardedData::iNameIndex), sBuffer, sizeof(sBuffer));
+
+												if(TranslationPhraseExists(sBuffer))
+												{
+													Format(sBuffer, sizeof(sBuffer), "%T", sBuffer, iClient);
+												}
+
+												Shop_GiveClientCredits(iClient, iGiveCredits);
+												LR_PrintToChat(iClient, false, "%T", "QuestCompliteShopCredits", iClient, iGiveCredits, sBuffer);
+											}
+
+											// Feture: more cases.
+
+											default:
+											{
+												LogStackTrace("BUG: Unknown amount type (%i)", eType);
+											}
 										}
 									}
 									else
