@@ -50,7 +50,7 @@ FROM \
 
 enum struct QuestAwardedData
 {
-	int       iGiveExp;
+	int       iAmount;
 	int       iMaxProgress;
 	int       iNameIndex;
 	int       iEventIndex;
@@ -257,7 +257,7 @@ SMCResult OnSelectQuestSettings(SMCParser hParser, const char[] sKey, const char
 	}
 	else if(!strcmp(sKey, "amount"))
 	{
-		g_QuestAwardedData.iGiveExp = StringToInt(sValue);
+		g_QuestAwardedData.iAmount = StringToInt(sValue);
 	}
 	else if(!strcmp(sKey, "count"))
 	{
@@ -392,7 +392,7 @@ void OnEventHandler(Event hEvent, const char[] sName, bool bDontBroadcast)
 								{
 									if(iProgress + 1 >= g_hQuests.Get(iQuestIndex, QuestAwardedData::iMaxProgress))
 									{
-										int iGiveExp = g_hQuests.Get(iQuestIndex, QuestAwardedData::iGiveExp);
+										int iGiveExp = g_hQuests.Get(iQuestIndex, QuestAwardedData::iAmount);
 
 										if(LR_ChangeClientValue(iClient, iGiveExp))
 										{
