@@ -469,7 +469,6 @@ void OnEventHandler(Event hEvent, const char[] sName, bool bDontBroadcast)
 													}
 
 													LR_PrintToChat(iClient, true, "%T", "QuestCompliteLRExp", iClient, LR_GetClientInfo(iClient, ST_EXP), GetSignValue(iGiveExp), sBuffer);
-													g_hPlayerQuests[iClient].Set(iPlayerIndex, -1, PlayerData::iProgress);
 												}
 											}
 
@@ -495,6 +494,8 @@ void OnEventHandler(Event hEvent, const char[] sName, bool bDontBroadcast)
 												LogStackTrace("BUG: Unknown amount type (%i)", eType);
 											}
 										}
+
+										g_hPlayerQuests[iClient].Set(iPlayerIndex, -1, PlayerData::iProgress);
 									}
 									else
 									{
